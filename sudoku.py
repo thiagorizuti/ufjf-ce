@@ -55,7 +55,17 @@ class Solution(object):
             for x in v:
                 fit += abs(x-1)
         return fit
-
+    
+    def blocks(self):
+        block = [0 for x in range(self.sudoku.dim**2)]
+        for m in range(self.sudoku.dim):
+            for n in range(self.sudoku.dim):
+                for i in range(m*self.sudoku.dim, m*self.sudoku.dim	 + self.sudoku.dim):
+                    for j in range(n*self.sudoku.dim, n*self.sudoku.dim + self.sudoku.dim):
+                        v[self.board[i][j]-1] += 1
+                for x in v:
+                    fit += abs(x-1)
+                v = [0 for x in range(self.sudoku.dim**2)]
 
     def blocks_fitness(self):
         fit = 0
@@ -102,38 +112,51 @@ class GA(object):
         if probabilty(self.mt_rate):
             r0 = random.randint(0,self.sudoku.dim**2-1)
             r1 = random.randint(0,self.sudoku.dim**2-1)
-            while self.sudoku.board[r1] == 0:
+            while self.sudoku.board[r0][r1] != 0:
                 r1 = random.randint(0,self.sudoku.dim**2-1)
             r2 = random.randint(0,self.sudoku.dim**2-1)
-            while self.sudoku.board[r2] == 0 and r2 != r1:
+            while self.sudoku.board[r0][r2] != 0 and r2 != r1:
                 r2 = random.randint(0,self.sudoku.dim**2-1)
             aux = ind.board[r0][r1]
             ind.board[r0][r1] = ind.board[r0][r2]
             ind.board[r0][r2] = aux
 
     def mutation_5swap(self,ind):
-        for i in range(9):
+        for i in range(5):
             if probabilty(self.mt_rate):
                 r0 = random.randint(0,self.sudoku.dim**2-1)
                 r1 = random.randint(0,self.sudoku.dim**2-1)
-                while self.sudoku.board[r1] == 0:
+                while self.sudoku.board[r0][r1] != 0:
                     r1 = random.randint(0,self.sudoku.dim**2-1)
                 r2 = random.randint(0,self.sudoku.dim**2-1)
-                while self.sudoku.board[r2] == 0 and r2 != r1:
+                while self.sudoku.board[r0][r2] != 0 and r2 != r1:
                     r2 = random.randint(0,self.sudoku.dim**2-1)
                 aux = ind.board[r0][r1]
                 ind.board[r0][r1] = ind.board[r0][r2]
                 ind.board[r0][r2] = aux
 
-    def mutation5(self,ind):
-        r = randint(0,8)
+    def mutation(self,ind):
+        r = randint(0,4)
         for i in range(r):
-            self.mutation_swap(ind)
+            if probabilty(self.mt_rate):
+                r0 = random.randint(0,self.sudoku.dim**2-1)
+                r1 = random.randint(0,self.sudoku.dim**2-1)
+                if self.sudoku.board[r1] == 0:
+                    r2 = random.randint(0,self.sudoku.dim**2-1)
+                    if self.sudoku.board[r2] == 0:
+                        aux = ind.board[r0][r1]
+                        ind.board[r0][r1] = ind.board[r0][r2]
+                        ind.board[r0][r2] = aux
 
-    def mutation_sort(self,ind):
+
+    def mutation_shuffle(self,ind):
         if probabilty(self.mt_rate):
             r = random.randint(0,self.sudoku.dim**2-1)
-            random.shuffle(ind.board[r])
+            rand = [x for x in range(1,self.sudoku.dim**2+1)]
+            random.shuffle(rand)
+            for i in range(self.sudoku.dim**2):
+                if self.sudoku.board[r][i] == 0:
+                    ind.board[r][i] = rand.pop(0)
 
 
     def crossover(self,ind1, ind2):
@@ -149,12 +172,10 @@ class GA(object):
     def selection(self):
         tot = sum([ind.fitness for ind in self.pop])
         r = random.randint(0,tot)
-        cur = 0
         for ind in self.pop:
-            cur += ind.fitness
-            if cur > r:
+            r -= ind.fitness
+            if r <= 0:
                 return ind
-        return self.pop[len(self.pop)-1]
 
 
     def calculate_population_fitness(self):
@@ -182,7 +203,7 @@ class GA(object):
             if gen - best_count >= 80:
                 #print "mutated"
                 best_count =gen
-            #print "Generation: ", gen, " Fittest: ", self.pop[0].fitness
+            print "Generation: ", gen, " Fittest: ", self.pop[0].fitness
             if(self.pop[0].fitness == 0):
                 break
             while len(new_pop) < self.pop_size:
@@ -194,9 +215,12 @@ class GA(object):
                 new_pop.append(new_ind[0])
                 new_pop.append(new_ind[1])
             new_pop.sort(key = lambda ind: ind.fitness)
-            new_pop = new_pop[0:900]
-            self.pop = self.pop[0:100]
+            new_pop = new_pop[0:90]
+            self.pop = self.pop[0:10]
             self.pop = self.pop + new_pop
+            #new_pop = self.pop + new_pop
+            #new_pop.sort(key = lambda ind: ind.fitness)
+            #self.pop = new_pop[0:21]
             gen +=1
         print gen
 
@@ -209,6 +233,7 @@ def probabilty(prob):
 
 
 sdk = Sudoku(3)
-ga = GA(sdk,0.3,0.5,5000)
+ga = GA(sdk,0.6,0.5,100)
 ga.evolve()
 ga.pop[0].display()
+sdk.display()
