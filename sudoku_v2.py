@@ -35,10 +35,7 @@ class Solution(object):
             random.shuffle(rand)
             for i in range(len(row)):
                 if row[i] == 0:
-                    p = rand.pop(0)
-                    while p in row:
-                        p = rand.pop(0)                   
-                    row[i] = p
+                    row[i] = rand.pop(0)
 
     def display(self):
         print "\n"
@@ -129,8 +126,8 @@ class GA(object):
             ind.board[r0][r2] = aux
 
     def mutation_5swap(self,ind):
-        if probabilty(self.mt_rate):
-            for i in range(5):
+        for i in range(5):
+            if probabilty(self.mt_rate):
                 r0 = random.randint(0,self.sudoku.dim**2-1)
                 r1 = random.randint(0,self.sudoku.dim**2-1)
                 while self.sudoku.board[r0][r1] != 0:
@@ -258,8 +255,8 @@ def probabilty(prob):
 
 random.seed(datetime.now())
 sdk = Sudoku(3)
-ga = GA(sdk,0.4,0.3,2000)
+ga = GA(sdk,0.2,0.1,500)
 ga.evolve()
-ga.pop[0].display()
+ga.display_pop()
 sdk.display()
 
