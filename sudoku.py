@@ -2,15 +2,15 @@ import random
 import copy
 
 class Sudoku(object):
-    board = [[0,4,0,0,0,0,1,7,9],
-             [0,0,2,0,0,8,0,5,4],
-             [0,0,6,0,0,5,0,0,8],
-             [0,8,0,0,7,0,9,1,0],
-             [0,5,0,0,9,0,0,3,0],
-             [0,1,9,0,6,0,0,4,0],
-             [3,0,0,4,0,0,7,0,0],
-             [5,7,0,1,0,0,2,0,0],
-             [9,2,8,0,0,0,0,6,0]]
+    board = [[0,0,2,0,0,0,5,0,0],
+             [0,1,0,7,0,5,0,2,0],
+             [4,0,0,0,9,0,0,0,7],
+             [0,4,9,0,0,0,7,3,0],
+             [8,0,1,0,3,0,4,0,9],
+             [0,3,6,0,0,0,2,1,0],
+             [2,0,0,0,8,0,0,0,4],
+             [0,8,0,9,0,2,0,6,0],
+             [0,0,7,0,0,0,8,0,0]]
 
 
     def __init__(self, dim):
@@ -41,15 +41,9 @@ class Solution(object):
         for row in self.board:
             print " ".join(str(x) for x in row)
 
-    def get_fitness(self):
-        if self.fitness != -1:
-            return self.fitness
-        else:
-            return self.calculate_fitness()
-
 
     def calculate_fitness(self):
-        return self.rows_fitness() + self.columns_fitness() + self.blocks_fitness();
+        self.fitness = self.columns_fitness() + self.blocks_fitness();
 
 
     def rows_fitness(self):
@@ -104,16 +98,117 @@ class GA(object):
             ind.display()
         print "\n"
 
-    def mutation(ind):
-        pass
+    def mutation_swap(self,ind):
+        if probabilty(self.mt_rate):
+            r0 = random.randint(0,self.sudoku.dim**2-1)
+            r1 = random.randint(0,self.sudoku.dim**2-1)
+            while self.sudoku.board[r1] == 0:
+                r1 = random.randint(0,self.sudoku.dim**2-1)
+            r2 = random.randint(0,self.sudoku.dim**2-1)
+            while self.sudoku.board[r2] == 0 and r2 != r1:
+                r2 = random.randint(0,self.sudoku.dim**2-1)
+            aux = ind.board[r0][r1]
+            ind.board[r0][r1] = ind.board[r0][r2]
+            ind.board[r0][r2] = aux
 
-    def crossover(ind):
-        pass
+    def mutation_5swap(self,ind):
+        for i in range(9):
+            if probabilty(self.mt_rate):
+                r0 = random.randint(0,self.sudoku.dim**2-1)
+                r1 = random.randint(0,self.sudoku.dim**2-1)
+                while self.sudoku.board[r1] == 0:
+                    r1 = random.randint(0,self.sudoku.dim**2-1)
+                r2 = random.randint(0,self.sudoku.dim**2-1)
+                while self.sudoku.board[r2] == 0 and r2 != r1:
+                    r2 = random.randint(0,self.sudoku.dim**2-1)
+                aux = ind.board[r0][r1]
+                ind.board[r0][r1] = ind.board[r0][r2]
+                ind.board[r0][r2] = aux
+
+    def mutation5(self,ind):
+        r = randint(0,8)
+        for i in range(r):
+            self.mutation_swap(ind)
+
+    def mutation_sort(self,ind):
+        if probabilty(self.mt_rate):
+            r = random.randint(0,self.sudoku.dim**2-1)
+            random.shuffle(ind.board[r])
+
+
+    def crossover(self,ind1, ind2):
+        new_ind1 = copy.deepcopy(ind1)
+        new_ind2 = copy.deepcopy(ind2)
+        for i, row in enumerate(new_ind1.board):
+            if probabilty(self.cx_rate):
+                aux = copy.deepcopy(new_ind1.board[i])
+                new_ind1.board[i] = copy.deepcopy(new_ind2.board[i])
+                new_ind2.board[i] = copy.deepcopy(aux)
+        return (new_ind1, new_ind2)
+
+    def selection(self):
+        tot = sum([ind.fitness for ind in self.pop])
+        r = random.randint(0,tot)
+        cur = 0
+        for ind in self.pop:
+            cur += ind.fitness
+            if cur > r:
+                return ind
+        return self.pop[len(self.pop)-1]
+
+
+    def calculate_population_fitness(self):
+        for ind in self.pop:
+            ind.calculate_fitness()
+
+    def aging(self,ind):
+        ind.fitness = ind.fitness + 1
+
+
+    def evolve(self):
+        self.start_pop()
+        self.calculate_population_fitness()
+        self.pop.sort(key = lambda ind: ind.fitness)
+        gen = 1
+        best_fit = 999
+        best_count = 1
+        while self.pop[0].fitness != 0:
+            new_pop = []
+            self.calculate_population_fitness()
+            self.pop.sort(key = lambda ind: ind.fitness)
+            if self.pop[0].fitness < best_fit:
+                best_fit = self.pop[0].fitness
+                best_count = gen
+            if gen - best_count >= 80:
+                #print "mutated"
+                best_count =gen
+            #print "Generation: ", gen, " Fittest: ", self.pop[0].fitness
+            if(self.pop[0].fitness == 0):
+                break
+            while len(new_pop) < self.pop_size:
+                ind1 = self.selection()
+                ind2 = self.selection()
+                new_ind = self.crossover(ind1, ind2)
+                self.mutation_swap(new_ind[0])
+                self.mutation_swap(new_ind[1])
+                new_pop.append(new_ind[0])
+                new_pop.append(new_ind[1])
+            new_pop.sort(key = lambda ind: ind.fitness)
+            new_pop = new_pop[0:900]
+            self.pop = self.pop[0:100]
+            self.pop = self.pop + new_pop
+            gen +=1
+        print gen
+
+
+
+def probabilty(prob):
+    r = random.random()
+    return  r <= prob
+
 
 
 sdk = Sudoku(3)
-ga = GA(sdk,0.5,0.6,20)
-ga.start_pop()
-ga.pop[1].display()
-print ga.pop[1].get_fitness()
-
+ga = GA(sdk,0.3,0.5,5000)
+ga.evolve()
+ga.pop[0].display()
