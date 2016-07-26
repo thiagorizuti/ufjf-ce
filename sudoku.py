@@ -6,6 +6,7 @@ import math
 #CLASS REPRESENTING A SUDOKU PUZZLE
 class Sudoku(object):
     board = []
+    fitness = -1
 
     def __init__(self, dimension):
         """Create a new sudoku given the dimension"""
@@ -22,12 +23,35 @@ class Sudoku(object):
 
     def pre_process(self):
         """Pre process the sudoku puzzle solving the positions with one possible value"""
-        pass
+        count = 0        
+        for position_index in range(self.dimension**4):
+            row_index = self.get_row_index(position_index)
+            column_index = self.get_column_index(position_index)
+            if self.board[row_index][column_index] == 0:
+                values = [1 for x in range(1,self.dimension**2+1)]
+                for value in self.get_row(position_index):
+                    if value != 0:
+                        values[value-1] = 0
+                for value in self.get_column(position_index):
+                    if value != 0:
+                        values[value-1] = 0
+                for value in self.get_block(position_index):
+                    if value != 0:
+                        values[value-1] = 0
+                if sum(values) == 1:
+                    self.board[row_index][column_index] = values.index(1) + 1
+                    count +=1
+        return count
+    
+    def get_row_index(self,position_index):
+        return position_index/self.dimension**2
 
+    def get_column_index(self,position_index):
+        return position_index % self.dimension**2
 
     def get_row(self, position_index):
         """Returns a list containing the values of the row of the given position index"""
-        row_index = int(float(position_index)/self.dimension**2)
+        row_index = position_index/self.dimension**2
         return self.board[row_index]
     
     def get_column(self, position_index):
@@ -38,12 +62,56 @@ class Sudoku(object):
             column.append(self.board[i][column_index])
         return column
 
-
     def get_block(self, position_index):
         """Returns the coordinates of a block given the row and column of the element"""
-        row_index = int(float(position_index)/self.dimension**2)
+        row_index = position_index/self.dimension**2
         column_index = position_index % self.dimension**2
-        return row_index, column_index
+        block_row_index = row_index / self.dimension
+        block_column_index = column_index / self.dimension
+        block = []
+        for i in range(self.dimension*block_row_index,self.dimension*(block_row_index+1)):
+            for j in range(self.dimension*block_column_index,self.dimension*(block_column_index+1)):
+                block.append(self.board[i][j])
+        return block
+
+    def blocks_fitness(self):
+        fit = 0
+        v = [0 for x in range(self.dimension**2)]
+        for m in range(self.dimension):
+            for n in range(self.dimension):
+                for i in range(m*self.dimension, m*self.dimension	 + self.dimension):
+                    for j in range(n*self.dimension, n*self.dimension + self.dimension):
+                        v[self.board[i][j]-1] += 1
+                for x in v:
+                    fit += abs(x-1)
+                v = [0 for x in range(self.dimension**2)]
+        return fit
+
+    def columns_fitness(self):
+        fit = 0
+        for i in range(self.dimension**2):
+            v = [0 for x in range(self.dimension**2)]
+            for row in self.board:
+                v[row[i]-1] += 1
+            for x in v:
+                fit += abs(x-1)
+        return fit
+
+    def calculate_fitness(self):
+        """Calculate the fitness of the solution"""
+        self.fitness = self.columns_fitness() + self.blocks_fitness();
+
+
+    def rows_fitness(self):
+        fit = 0
+        for row in self.board:
+            v = [0 for x in range(self.dimension**2)]
+            for i in range(len(row)):
+                v[row[i]-1] += 1
+            for x in v:
+                fit += abs(x-1)
+        return fit
+    
 
 #CLASS REPRESENTING A POSSIBLE SOLUTION FOR A SUDOKU PUZZLE
 class Solution(object):
@@ -297,12 +365,11 @@ def read_sudoku_file(file_name,dimension):
 
 
 random.seed(datetime.now())
-sudoku = read_sudoku_file("s01a.txt",3)
+sudoku = read_sudoku_file("size5",5)
+while(sudoku.pre_process()> 0):
+    continue
+ga = GA(sudoku,0.4,0.3,2000)
+ga.evolve()
 sudoku.display()
-print sudoku.get_row(80)
-#sudoku.display()
-#ga = GA(sudoku,0.4,0.3,2000)
-#ga.evolve()
-#sudoku.display()
-#ga.population[0].display()
+ga.population[0].display()
 
